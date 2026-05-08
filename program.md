@@ -8,8 +8,8 @@ their model in the Hopsworks model registry.
 
 ## Inputs from the user
 
-The wizard (or a human) hands you four things up-front. If any are
-missing, ask before doing anything else.
+The wizard (or a human) hands you these up-front. If any are missing,
+ask before doing anything else.
 
 - **features**: a comma-separated list `fg_v.feature` (e.g. `sales_v3.qty,
   weather_v1.temp`). May be empty if the user hasn't picked from the
@@ -20,6 +20,9 @@ missing, ask before doing anything else.
   days". This pins the metric for the whole run.
 - **budget**: total experiment budget. Example: "5 minutes per experiment,
   hard cap of 30 experiments (~2.5h total)".
+- **compute**: `cpu` or `gpu`. CPU = stay in sklearn / XGBoost /
+  LightGBM territory, no CUDA deps. GPU = PyTorch / TF / CUDA libraries
+  OK, pick model classes that actually benefit from the GPU.
 - **tag**: a short run tag. If none given, propose one based on today's
   date (e.g. `dec5`). Branch `autoresearch/<tag>` must not already exist.
 
@@ -117,7 +120,10 @@ The user might be asleep.
 - All ingest into the experiments FG goes through the offline store.
   Don't enable online for this FG; it's an experiment log, not a
   serving surface.
-- Model registry: tag every kept model with at least
+- Model registry: pick the namespace that matches what you trained —
+  `mr.python.create_model(...)`, `mr.sklearn.create_model(...)`,
+  `mr.tensorflow.create_model(...)`, `mr.torch.create_model(...)`, or
+  `mr.llm.create_model(...)`. Tag every kept model with at least
   `val_metric=<value>` and `metric_direction=<min|max>`. Names should
   be `autoresearch_<tag>_<step>` so they sort.
 - If you create the feature view, name it `autoresearch_<tag>_fv`. One

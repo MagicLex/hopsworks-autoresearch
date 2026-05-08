@@ -1,4 +1,18 @@
-# autoresearch
+# hopsworks-autoresearch
+
+> **Hopsworks adaptation of [karpathy/nanochat](https://github.com/karpathy/nanochat)'s
+> autoresearch concept.** Same idea (agent loops on a single training
+> file, keeps wins overnight) applied to Hopsworks-backed tabular ML
+> instead of LLM pretraining. The recipe the agent follows lives in
+> [`program.md`](./program.md). The original Karpathy README below is
+> kept as conceptual background — the LLM-specific `train.py` and
+> `prepare.py` here are the original karpathy reference, useful as a
+> mental model but not what a Hopsworks autoresearch run actually
+> executes.
+
+---
+
+# autoresearch (original Karpathy README)
 
 ![teaser](progress.png)
 

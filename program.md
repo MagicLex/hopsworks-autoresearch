@@ -63,8 +63,11 @@ ask before doing anything else.
 5. Run the baseline once: `python train.py > run.log 2>&1`.
 6. Insert the baseline row into `autoresearch_experiments_<tag>`,
    `status=keep`, description="baseline".
-7. Register the baseline model in the Hopsworks model registry, tagged
-   with `val_metric` and the metric direction.
+7. Register the baseline as `autoresearch_<tag>` v1 in the Hopsworks
+   model registry, with `metrics={"val_metric": <value>}` and a
+   description that includes `status=keep` and `metric_direction`.
+   Every subsequent experiment (keep or discard) registers as the
+   next version of the same model name.
 
 Confirm the baseline number with the user once, then enter the loop
 without further confirmations.
@@ -96,9 +99,12 @@ while not budget_exhausted:
        - if empty, run crashed; tail -n 50 run.log, attempt fix
        - few fix attempts max; if still broken, status=crash, move on
     5. insert row into autoresearch_experiments_<tag>
-    6. if val_metric improved per the metric direction:
+    6. register the model as a new version of autoresearch_<tag>
+       (keep, discard, and crash all get a version so the registry
+       UI shows the full run; status and a one-line summary go on
+       the model description)
+    7. if val_metric improved per the metric direction:
          - advance the branch (keep the commit)
-         - register the model in the model registry, tagged val_metric
          - status=keep
        else:
          - git reset --hard HEAD~1
@@ -117,15 +123,26 @@ The user might be asleep.
 
 ## Hopsworks specifics
 
-- All ingest into the experiments FG goes through the offline store.
-  Don't enable online for this FG; it's an experiment log, not a
-  serving surface.
-- Model registry: pick the namespace that matches what you trained —
+Two surfaces, one run:
+
+- The experiments FG `autoresearch_experiments_<tag>` is the
+  leaderboard. Every experiment writes a row (keep, discard, or
+  crash) so the run is fully queryable from a notebook or `hops fg
+  preview`. Don't enable online for this FG; it's a log, not a serving
+  surface.
+- The model registry is the visualisation. Every experiment registers
+  as a **new version** of a single model named `autoresearch_<tag>`,
+  regardless of keep/discard. The UI then renders the run as one
+  model with N versions sorted by version number, with metrics charted
+  per version. Set `metrics={"val_metric": <value>}` so the chart has
+  a y-axis; put `status` and a one-line `description` of the change
+  on the model so a human scanning the registry sees the keep/discard
+  decision and what was tried without opening the FG.
+- Pick the registry namespace that matches what you trained:
   `mr.python.create_model(...)`, `mr.sklearn.create_model(...)`,
   `mr.tensorflow.create_model(...)`, `mr.torch.create_model(...)`, or
-  `mr.llm.create_model(...)`. Tag every kept model with at least
-  `val_metric=<value>` and `metric_direction=<min|max>`. Names should
-  be `autoresearch_<tag>_<step>` so they sort.
+  `mr.llm.create_model(...)`. All versions of a given run must use
+  the same namespace so version numbers are consecutive.
 - If you create the feature view, name it `autoresearch_<tag>_fv`. One
   FV per run, no shared state with other autoresearch branches.
 
